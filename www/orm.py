@@ -93,3 +93,69 @@ class TextField(Field):
         super().__init__(name=name, column_type='text', primary_key=False, default=default)
 
 
+class Model(dict, metaclass=ModelMetaclass):
+
+    def __init__(self, **kwargs):
+        super(Model, self).__init__(**kwargs)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(r"'Model'object has no attribute '%s'" % key)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def getValue(self, key):
+        return getattr(self, key, None)
+
+    def getValueOrDefault(self, key):
+        value = getattr(self, key, None)
+        if value is None:
+            field = self.__mapping__.get(key)
+            if field is not None and field.default is not None:
+                value = field.default() if callable(field.difault) else field.default
+                logging.info('using default value for %s:%s' % (key, str(value)))
+                setattr(self, key, value)
+        return value
+
+
+class ModelMetaclass(type):
+
+    def __new__(cls, name, bases, attrs):
+
+        #  排除Model类
+        if name == 'Model':
+            return type.__new__(cls, name, bases, attrs)
+        tablename = attrs.get('__table__') or name
+        logging.info('found model: %s (table: %s)' % (name, tablename))
+
+        # 提取定义的field和主键名
+        mappings = dict()
+        fields = []
+        primarykey = None
+        for k, v in attrs.items:
+            if isinstance(v, Field):
+                mappings[k] = v
+                if v.primary_key:
+                    if primarykey:
+                        raise RuntimeError('Duplicate primary key for field: %s' % k)
+                    primarykey = k
+                else:
+                    fields.append(k)
+        if primarykey is None:
+            raise RuntimeError('no primarykey in model')
+        for k in mappings:
+            attrs.pop(k)
+        common_fields = list(map(lambda f: '`%s`' % f, fields))
+        attrs['__table__'] = tablename
+        attrs['__mappings__'] = mappings
+        attrs['__primary_key__'] = primarykey
+        attrs['__fields__'] = fields
+        attrs['__select__'] = 'select `%s`, %s from `%s`' % (primarykey, ', '.join(common_fields), tablename)
+        attrs['__insert__'] = 'insert into `%s` (`%s`, %s) values (%s)' % (tablename, primarykey, ', '.join(common_fields), create_args_placeholder_str(len(fields)+1))
+        
+
+
+
