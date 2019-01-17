@@ -121,6 +121,13 @@ class Model(dict, metaclass=ModelMetaclass):
         return value
 
 
+def create_args_placeholder_str(num):
+    L = []
+    for n in range(num):
+        L.append('?')
+    return ', '.join(L)
+
+
 class ModelMetaclass(type):
 
     def __new__(cls, name, bases, attrs):
@@ -148,14 +155,19 @@ class ModelMetaclass(type):
             raise RuntimeError('no primarykey in model')
         for k in mappings:
             attrs.pop(k)
-        common_fields = list(map(lambda f: '`%s`' % f, fields))
+        common_fields = map(lambda f: '`%s`' % mappings.get(f).name or f, fields)
         attrs['__table__'] = tablename
         attrs['__mappings__'] = mappings
         attrs['__primary_key__'] = primarykey
         attrs['__fields__'] = fields
         attrs['__select__'] = 'select `%s`, %s from `%s`' % (primarykey, ', '.join(common_fields), tablename)
         attrs['__insert__'] = 'insert into `%s` (`%s`, %s) values (%s)' % (tablename, primarykey, ', '.join(common_fields), create_args_placeholder_str(len(fields)+1))
-        
+        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tablename, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primarykey)
+        attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tablename, primarykey)
+        return type.__new__(cls, name, bases, attrs)
+
+
+
 
 
 
