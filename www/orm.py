@@ -93,34 +93,6 @@ class TextField(Field):
         super().__init__(name=name, column_type='text', primary_key=False, default=default)
 
 
-class Model(dict, metaclass=ModelMetaclass):
-
-    def __init__(self, **kwargs):
-        super(Model, self).__init__(**kwargs)
-
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(r"'Model'object has no attribute '%s'" % key)
-
-    def __setattr__(self, key, value):
-        self[key] = value
-
-    def getValue(self, key):
-        return getattr(self, key, None)
-
-    def getValueOrDefault(self, key):
-        value = getattr(self, key, None)
-        if value is None:
-            field = self.__mapping__.get(key)
-            if field is not None and field.default is not None:
-                value = field.default() if callable(field.difault) else field.default
-                logging.info('using default value for %s:%s' % (key, str(value)))
-                setattr(self, key, value)
-        return value
-
-
 def create_args_placeholder_str(num):
     L = []
     for n in range(num):
@@ -155,16 +127,101 @@ class ModelMetaclass(type):
             raise RuntimeError('no primarykey in model')
         for k in mappings:
             attrs.pop(k)
-        common_fields = map(lambda f: '`%s`' % mappings.get(f).name or f, fields)
+        common_fields = list(map(lambda f: '`%s`' % mappings.get(f).name or f, fields))
         attrs['__table__'] = tablename
         attrs['__mappings__'] = mappings
         attrs['__primary_key__'] = primarykey
         attrs['__fields__'] = fields
         attrs['__select__'] = 'select `%s`, %s from `%s`' % (primarykey, ', '.join(common_fields), tablename)
-        attrs['__insert__'] = 'insert into `%s` (`%s`, %s) values (%s)' % (tablename, primarykey, ', '.join(common_fields), create_args_placeholder_str(len(fields)+1))
-        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tablename, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primarykey)
+        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tablename, ', '.join(common_fields), primarykey, create_args_placeholder_str(len(fields)+1))
+        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tablename, ', '.join(list(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields))), primarykey)
         attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tablename, primarykey)
         return type.__new__(cls, name, bases, attrs)
+
+
+class Model(dict, metaclass=ModelMetaclass):
+
+    def __init__(self, **kwargs):
+        super(Model, self).__init__(**kwargs)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(r"'Model'object has no attribute '%s'" % key)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def getValue(self, key):
+        return getattr(self, key, None)
+
+    def getValueOrDefault(self, key):
+        value = getattr(self, key, None)
+        if value is None:
+            field = self.__mapping__.get(key)
+            if field is not None and field.default is not None:
+                value = field.default() if callable(field.difault) else field.default
+                logging.info('using default value for %s:%s' % (key, str(value)))
+                setattr(self, key, value)
+        return value
+
+    @classmethod
+    # find objects by where clause
+    async def findAll(cls, where=None, args=None, **kwargs):
+        sql = [cls.__select__]
+        if where:
+            sql.append('where')
+            sql.append(where)
+        if args is None:
+            args = []
+        orderBy = kwargs.get('orderBy', None)
+        if orderBy:
+            sql.append('order by')
+            sql.append(orderBy)
+        limit = kwargs.get('limit', None)
+        if limit is not None:
+            sql.append('limit')
+            if isinstance(limit, int):
+                sql.append('?')
+                args.append(limit)
+            elif isinstance(limit, tuple) and len(limit) == 2:
+                sql.append('? ?')
+                args.extend(limit)
+            else:
+                raise ValueError('limit value is invalid')
+        rs = await select(' '.join(sql), args)
+        return [cls(**r) for r in rs]
+
+    @classmethod
+    async def find(cls, pk):
+        # find object by primary_key
+        rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
+        if len(rs) == 0:
+            return None
+        return cls(**rs[0])
+
+    async def save(self):
+        args = list(map(self.getValueOrDefault(key) for key in self.__fields__))
+        args.append(self.getValueOrDefault(self.__primary_key__))
+        affected = await execute(self.__insert__, args)
+        if affected != 1:
+            logging.warning('affected row is not 1')
+
+    async def update(self):
+        args = list(map(self.getValueOrDefault(key) for key in self.__fields__))
+        args.append(self.getValueOrDefault(self.__primary_key__))
+        affected = await execute(self.__update__, args)
+        if affected != 1:
+            logging.warning('affected row is not 1')
+
+    async def remove(self):
+        args = [self.getValueOrDefault(self.__primry_key__)]
+        affected = await execute(self.__delete__, args)
+        if affected != 1:
+            logging.warning('affected row is not 1')
+
+
 
 
 
