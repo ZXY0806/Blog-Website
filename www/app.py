@@ -1,6 +1,8 @@
 import logging; logging.basicConfig(level=logging.INFO)
 import asyncio, os, time, json
 from aiohttp import web
+from models import User, Blog, Comment
+from orm import create_pool
 
 
 def index(request):
@@ -19,7 +21,15 @@ def main():
     web.run_app(app, host='172.16.3.111', port=9000)
     logging.info('server started at http://127.0.0.1:9000 ...')
 
+async def test(loop):
+    await create_pool(loop=loop, user='root', password='sa', db='blog_website')
+    u = User(id='1', name='小明', email='email', image='image', passwd='passwd')
+    await u.save()
 
 if __name__ == '__main__':
-    main()
+    print('test')
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test(loop))
+    loop.close()
+
 

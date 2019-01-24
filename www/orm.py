@@ -16,7 +16,7 @@ async def create_pool(loop, **kwargs):
         password=kwargs['password'],
         db=kwargs['db'],
         autocommit=kwargs.get('autocommit', True),
-        charset=kwargs.get('charset', 'utf-8'),
+        charset=kwargs.get('charset', 'utf8'),
         maxsize=kwargs.get('maxsize', 10),
         minsize=kwargs.get('minsize', 1)
     )
@@ -72,19 +72,19 @@ class StringField(Field):
 class BooleanField(Field):
 
     def __init__(self, name=None, default=False):
-        super(BooleanField, self).__init__((name, 'boolean', False, default))
+        super(BooleanField, self).__init__(name, 'boolean', False, default)
 
 
 class IntField(Field):
 
     def __init__(self, name=None, primary_key=False, default=0):
-        super(IntField, self).__init__((name, 'bigint', primary_key, default))
+        super(IntField, self).__init__(name, 'bigint', primary_key, default)
 
 
 class FloatField(Field):
 
     def __init__(self, name=None, primary_key=False, default=0.0):
-        super(FloatField, self).__init__((name, 'real', primary_key, default))
+        super(FloatField, self).__init__(name, 'real', primary_key, default)
 
 
 class TextField(Field):
@@ -114,7 +114,7 @@ class ModelMetaclass(type):
         mappings = dict()
         fields = []
         primarykey = None
-        for k, v in attrs.items:
+        for k, v in attrs.items():
             if isinstance(v, Field):
                 mappings[k] = v
                 if v.primary_key:
@@ -159,9 +159,9 @@ class Model(dict, metaclass=ModelMetaclass):
     def getValueOrDefault(self, key):
         value = getattr(self, key, None)
         if value is None:
-            field = self.__mapping__.get(key)
+            field = self.__mappings__.get(key)
             if field is not None and field.default is not None:
-                value = field.default() if callable(field.difault) else field.default
+                value = field.default() if callable(field.default) else field.default
                 logging.info('using default value for %s:%s' % (key, str(value)))
                 setattr(self, key, value)
         return value
@@ -202,7 +202,7 @@ class Model(dict, metaclass=ModelMetaclass):
         return cls(**rs[0])
 
     async def save(self):
-        args = list(map(self.getValueOrDefault(key) for key in self.__fields__))
+        args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
         affected = await execute(self.__insert__, args)
         if affected != 1:
