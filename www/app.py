@@ -1,5 +1,5 @@
 import logging; logging.basicConfig(level=logging.INFO)
-import asyncio, os, time, json
+import asyncio, os, time, json, sys
 from aiohttp import web
 from models import User, Blog, Comment
 from orm import create_pool
@@ -31,5 +31,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test(loop))
     loop.close()
-
+    sys.exit(0)  # loop直接close会抛出RunError异常，具体机制还要产看文档，理解loop运行机制
 

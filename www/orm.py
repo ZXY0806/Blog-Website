@@ -127,7 +127,7 @@ class ModelMetaclass(type):
             raise RuntimeError('no primarykey in model')
         for k in mappings:
             attrs.pop(k)
-        common_fields = list(map(lambda f: '`%s`' % mappings.get(f).name or f, fields))
+        common_fields = list(map(lambda f: '`%s`' % (mappings.get(f).name or f), fields))
         attrs['__table__'] = tablename
         attrs['__mappings__'] = mappings
         attrs['__primary_key__'] = primarykey
@@ -209,7 +209,7 @@ class Model(dict, metaclass=ModelMetaclass):
             logging.warning('affected row is not 1')
 
     async def update(self):
-        args = list(map(self.getValueOrDefault(key) for key in self.__fields__))
+        args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
         affected = await execute(self.__update__, args)
         if affected != 1:
