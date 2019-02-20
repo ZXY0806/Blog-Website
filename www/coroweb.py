@@ -57,3 +57,17 @@ def get_named_kwargs(func):
     return tuple(args)
 
 
+def has_request_kwargs(func):
+    sig = inspect.signature(func)
+    params = sig.parameters  # 返回值为有序字典
+    found = False
+    for name, param in params.items():
+        if name == 'request':
+            found = True
+            continue
+        if found == True and param.kind != inspect.Parameter.VAR_KEYWORD:
+            return ValueError('request parameter must be the last named parameter in function: %s%s' % (func.__name__,
+                                                                                                        str(sig)))
+    return found
+
+
