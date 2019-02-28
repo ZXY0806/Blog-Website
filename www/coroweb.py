@@ -57,7 +57,7 @@ def get_named_kwargs(func):
     return tuple(args)
 
 
-def has_request_kwargs(func):
+def has_request_arg(func):
     sig = inspect.signature(func)
     params = sig.parameters  # 返回值为有序字典
     found = False
@@ -65,9 +65,47 @@ def has_request_kwargs(func):
         if name == 'request':
             found = True
             continue
-        if found == True and param.kind != inspect.Parameter.VAR_KEYWORD:
+        if found and param.kind != inspect.Parameter.VAR_KEYWORD:
             return ValueError('request parameter must be the last named parameter in function: %s%s' % (func.__name__,
                                                                                                         str(sig)))
     return found
+
+
+class RequestHandler(object):
+
+    def __init__(self, app, func):
+        self._app = app
+        self._func = func
+        self._required_kwargs = get_required_kwargs(func)
+        self._has_var_kwargs = has_var_kwargs(func)
+        self._has_named_kwargs = has_named_kwargs(func)
+        self._has_request_arg = has_request_arg(func)
+
+    async def __call__(self, request):
+        kw = None
+        if self._has_var_kwargs or self._has_named_kwargs or self._required_kwargs:
+            if request.method == 'POST':
+                pass
+            if request.method == 'GET':
+                pass
+        if kw is None:
+            kw = dict(**request.match_info)
+        else:
+            pass
+        if self._has_request_arg:
+            kw['request'] = request
+        for name in self._required_kwargs:
+            if name not in kw:
+                return web.HTTPBadRequest('Missing argument:{}'.format(name))
+        logging.info('call with args:%s' % str(kw))
+        try:
+            r = await self._func(**kw)
+            return r
+        except:
+            # APIError
+            pass
+
+
+
 
 
