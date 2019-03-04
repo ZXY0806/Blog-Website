@@ -4,6 +4,7 @@ from aiohttp import web
 from models import User, Blog, Comment
 from orm import create_pool
 from jinja2 import Environment, FileSystemLoader
+from datetime import datetime
 from coroweb import add_static, add_routes
 
 
@@ -64,6 +65,57 @@ async def data_factory(app, handler):
                 logging.info('request form:%s' % request.__data__)
         return await handler(request)
     return parse_data
+
+
+async def response_factory(app, handler):
+    async def response(request):
+        logging.info('handle request ...')
+        r = await handler(request)
+        if isinstance(r, web.StreamResponse):
+            return r
+        if isinstance(r, bytes):
+            resp = web.Response(body=r)
+            return resp
+        if isinstance(r, str):
+            if r.startswith('redirect:'):
+                return web.HTTPFound(r[9:])
+            resp = web.Response(body=r.encode('utf-8'))
+            resp.content_type = 'text/html;charset=utf-8'
+            return resp
+        if isinstance(r, dict):
+            template = r.get('__template__')
+            if template is None:
+                resp = web.Response(body=json.dumps(r, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
+                resp.content_type = 'application/json;charset=utf-8'
+                return resp
+            else:
+                resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
+                resp.content_type = 'text/html;charset=utf-8'
+                return resp
+        if isinstance(r, int) and 100 <= r < 600:
+            return web.Response(r)
+        if isinstance(r, tuple) and len(r) == 2:
+            v, t = r
+            if isinstance(v, int) and 100 <= v < 600:
+                return web.Response(v, str(r))
+        resp = web.Response(body=str(r).encode('utf-8'))
+        resp.content_type = 'text/plain;charset=utf-8'
+        return resp
+    return response
+
+
+def time_filter(t):
+    t_pass = int(time.time() - t)
+    if t_pass < 60:
+        return u'1分钟前'
+    if t_pass < 3600:
+        return u'%s分钟前' % (t_pass // 60)
+    if t_pass < 86400:
+        return u'%s小时前' % (t_pass // 3600)
+    if t_pass < 604800:
+        return u'%s天前' % (t_pass // 86400)
+    dt = datetime.fromtimestamp(t)
+    return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 
 async def test(loop):
