@@ -26,7 +26,7 @@ class Blog(Model):
     user_id = StringField(ddl='varchar(50)')
     user_image = StringField(ddl='varchar(500)')
     name = StringField(ddl='varchar(50)')
-    sumary = StringField(ddl='varchar(200)')
+    summary = StringField(ddl='varchar(200)')
     content = TextField()
     created_at = FloatField(default=time.time)
 

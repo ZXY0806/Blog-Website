@@ -123,36 +123,22 @@ def signout(request):
     return r
 
 
-@get('/blog/{blog_id}')
-async def get_blog(blog_id):
-    blog = await Blog.find(blog_id)
-    comments = await Comment.findAll('blog_id=?', [blog_id], orderBy='created_at desc')
-    for c in comments:
-        c.html_content = markdown.markdown(c.content)
-    blog.html_content = markdown.markdown(blog.content)
-    return {
-        '__template__': 'blog.html',
-        'comments': comments,
-        'blog': blog
-    }
-
-
 @post('/api/authenticate')
 async def authenticate(*, email, passwd):
     if not email:
-        return APIValueError('email', 'invalid email')
+        raise APIValueError('email', 'invalid email')
     if not passwd:
-        return APIValueError('passwd', 'invalid passwd')
+        raise APIValueError('passwd', 'invalid passwd')
     users = await User.findAll('email=?', [email])
     if len(users) == 0:
-        return APIValueError('email', 'email not exist')
+        raise APIValueError('email', 'email not exist')
     user = users[0]
     sha1 = hashlib.sha1()
     sha1.update(user.id.encode('utf-8'))
     sha1.update(b':')
     sha1.update(passwd.encode('utf-8'))
     if user.passwd != sha1.hexdigest():
-        return APIValueError('passwd', 'invalid passwd')
+        raise APIValueError('passwd', 'invalid passwd')
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), expires='86400', httponly='True')
     user.passwd = '******'
@@ -204,7 +190,7 @@ def manage_blog_edit(*, blog_id):
 
 
 @get('/api/users')
-async def get_users(*, page='1'):
+async def api_users(*, page='1'):
     num = await User.findNumber('count(id)')
     p = Page(num, get_page_index(page))
     if num == 0:
@@ -213,5 +199,160 @@ async def get_users(*, page='1'):
     for u in users:
         u.passwd = '******'
     return dict(page=p, users=users)
+
+
+_RE_EMAIL = re.compile(r'^[a-zA-Z0-9.-_]+@[0-9a-z-_]+(.[a-z0-9-_]){1-4}$')
+_RE_SHA = re.compile(r'^[a-z0-9]{40}$')
+
+
+@post('/api/users')
+async def api_register_user(*, email, name, passwd):
+    if not name or not name.strip():
+        raise APIValueError('name')
+    if not email or not _RE_EMAIL.match(email):
+        raise APIValueError('email')
+    if not passwd or not _RE_SHA.match(passwd):
+        raise APIValueError('passwd')
+    users = await User.findAll('email=?', [email])
+    if len(users) != 0:
+        raise APIError('register:failed', 'email', 'email has already in use')
+    uid = next_id()
+    sha1_passwd = '%s:%s' % (uid, passwd)
+    user = User(id=uid, email=email, name=name, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest())
+    await user.save()
+    r = web.Response()
+    r.content_type = 'application/json'
+    r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly='True')
+    user.passwd = '******'
+    r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
+    return r
+
+
+@get('/api/comments')
+async def api_comments(*, page='1'):
+    num = await Comment.findNumber('count(id)')
+    page_index = get_page_index(page)
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page=p, comments=())
+    comments = await Comment.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    return dict(page=p, comments=comments)
+
+
+@post('/api/comments/{comment_id}/delete')
+async def api_delete_comment(comment_id, request):
+    check_admin(request)
+    comment = await Comment.find(comment_id)
+    if comment is None:
+        return APIResourceNotFoundError('comment')
+    await comment.remove()
+    return dict(id=comment_id)
+
+
+@post('/api/blogs/{blog_id}/comments')
+async def api_create_comment(blog_id, request, *, content):
+    user = request.__user__
+    if user is None:
+        raise APIPermissionError('please signin first')
+    if not content or not content.strip():
+        raise APIValueError('content')
+    blog = await Blog.find(blog_id)
+    if blog is None:
+        raise APIValueError('blog_id')
+    comment = Comment(user_name=user.name, user_id=user.id, user_image=user.image, blog_id=blog_id, content=content.strip())
+    await comment.save()
+    return comment
+
+
+@get('/blog/{blog_id}')
+async def get_blog(blog_id):
+    blog = await Blog.find(blog_id)
+    comments = await Comment.findAll('blog_id=?', [blog_id], orderBy='created_at desc')
+    for c in comments:
+        c.html_content = markdown.markdown(c.content)
+    blog.html_content = markdown.markdown(blog.content)
+    return {
+        '__template__': 'blog.html',
+        'comments': comments,
+        'blog': blog
+    }
+
+
+@get('/api/blogs')
+async def api_blogs(*, page='1'):
+    page_index = get_page_index(page)
+    num = await Blog.findNumber('count(id)')
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page=p, blogs=())
+    blogs = Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    return dict(page=p, blogs=blogs)
+
+
+@post('/api/blogs/{blog_id}/delete')
+async def api_delete_blogs(blog_id, request):
+    user = request.__user__
+    check_admin(user)
+    blog = await Blog.find(blog_id)
+    if blog is None:
+        raise APIResourceNotFoundError('blog')
+    await blog.remove()
+    return dict(id=blog_id)
+
+
+@post('/api/blogs/{blog_id}')
+async def api_update_blog(blog_id, request, *, name, summary, content):
+    user = request.__user__
+    check_admin(user)
+    blog = await Blog.find(blog_id)
+    if blog is None:
+        raise APIResourceNotFoundError('blog', 'invalid blog id')
+    if not name or not name.strip():
+        raise APIValueError('name', 'name can not be empty')
+    if not summary or not summary.strip():
+        raise APIValueError('summary', 'summary can not be empty')
+    if not content or not content.strip():
+        raise APIValueError('content', 'content can not be empty')
+    blog.name = name.strip()
+    blog.summary = summary.strip()
+    blog.content = content.strip()
+    await blog.update()
+    return blog
+
+
+@post('/api/blogs')
+async def api_create_blog(request, *, name, summary, content):
+    user = request.__user__
+    check_admin(user)
+    if not name or not name.strip():
+        raise APIValueError('name', 'name can not be empty')
+    if not summary or not summary.strip():
+        raise APIValueError('summary', 'summary can not be empty')
+    if not content or not content.strip():
+        raise APIValueError('content', 'content can not be empty')
+    blog = Blog(user_name=user.name, user_id=user.id, user_image=user.image, name=name.strip(), summary=summary.strip(),
+                content=content.strip())
+    await blog.save()
+    return blog
+
+
+@post('/api/users/{user_id}/delete')
+async def api_delete_user(user_id, request):
+    buff_id = user_id
+    user = request.__user__
+    check_admin(user)
+    user = await User.find(user_id)
+    if user is None:
+        raise APIResourceNotFoundError('user', 'user is not exist')
+    await user.remove()
+    comments = await Comment.findAll('user_id=?', [buff_id])
+    for c in comments:
+        c.user_name = c.user_name + '(该用户已被删除)'
+        await c.update()
+    return dict(id=buff_id)
+
+
+
+
 
 
