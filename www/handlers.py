@@ -5,7 +5,7 @@ from models import User, Comment, Blog, next_id
 from apis import Page, APIPermissionError, APIResourceNotFoundError, APIValueError, APIError
 from config import configs
 '''
-获取日志：GET /api/blogs
+获取日志列表：GET /api/blogs
 创建日志：POST /api/blogs
 修改日志：POST /api/blogs/:blog_id
 删除日志：POST /api/blogs/:blog_id/delete
