@@ -94,7 +94,7 @@ async def index(page='1'):
     else:
         blogs = await Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return {
-        '__template__': 'index.html',
+        '__template__': 'blogs.html',
         'page': p,
         'blogs': blogs
     }
