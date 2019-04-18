@@ -201,7 +201,7 @@ class Model(dict, metaclass=ModelMetaclass):
             sql.append(where)
         rs = await select(' '.join(sql), args, 1)
         if len(rs) == 0:
-            return None
+            return 0
         return rs[0]['_num_']
 
     @classmethod

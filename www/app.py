@@ -1,28 +1,12 @@
 import logging; logging.basicConfig(level=logging.INFO)
-import asyncio, os, time, json, sys
+import asyncio, os, time, json
 from aiohttp import web
-from models import User, Blog, Comment
-from orm import create_pool
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 from coroweb import add_static, add_routes
-
-
-def index(request):
-    return web.Response(body=b'<h1>welcome</h1>', content_type='text/html')
-
-
-async def init(loop):
-    app = web.Application(loop=loop)
-    app.router.add_route('GET', '/', index)
-    return app
-
-
-def main():
-    loop = asyncio.get_event_loop()
-    app = loop.run_until_complete(init(loop))
-    web.run_app(app, host='172.16.3.111', port=9000)
-    logging.info('server started at http://127.0.0.1:9000 ...')
+from handlers import cookie2user, COOKIE_NAME
+from orm import create_pool
+from config import configs
 
 
 def init_jinja2(app, **kw):
@@ -52,6 +36,22 @@ async def logger_factory(app, handler):
         logging.info('request:%s %s' % (request.method, request.path))
         return await handler(request)
     return logger
+
+
+async def auth_factory(app, handler):
+    async def auth(request):
+        logging.info('check user:%s, %s' % (request.method, request.path))
+        request.__user__ = None
+        cookie_str = request.cookies.get(COOKIE_NAME)
+        if cookie_str:
+            user = await cookie2user(cookie_str)
+            if user:
+                logging.info('set user:%s' % user.email)
+                request.__user__ = user
+        if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
+            return web.HTTPFound('/signin')
+        return await handler(request)
+    return auth
 
 
 async def data_factory(app, handler):
@@ -118,16 +118,22 @@ def time_filter(t):
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 
-async def test(loop):
-    await create_pool(loop=loop, user='root', password='sa', db='blog_website')
-    u = User(id='1', name='小明', email='email', image='image', passwd='passwd')
-    await u.save()
+async def init(loop):
+    await create_pool(loop, **configs.db)
+    app = web.Application(loop=loop, middlewares=[logger_factory, auth_factory, data_factory, response_factory])
+    add_static(app)
+    add_routes(app, 'handlers')
+    init_jinja2(app, filters=dict(datetime=time_filter))
+    return app
+
+
+def main():
+    loop = asyncio.get_event_loop()
+    app = loop.run_until_complete(init(loop))
+    logging.info('server started at http://127.0.0.1:9000 ...')
+    web.run_app(app, host='127.0.0.1', port=9000)
 
 
 if __name__ == '__main__':
-    print('test')
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(test(loop))
-    loop.close()
-    sys.exit(0)  # loop直接close会抛出RunError异常，具体机制还要看文档，理解loop运行机制
+    main()
 

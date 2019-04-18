@@ -1,5 +1,5 @@
 drop database if exits blog_website;
-create database blog_website;
+create DATABASE blog_website;
 use blog_website;
 create user 'blog_admin'@'localhost' identified by 'password';
 alter user 'blog_admin'@'localhost' identified with mysql_native_password by 'password';
