@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 
 {% extends '__base__.html' %}
 
@@ -8,10 +7,10 @@
 <script>
 var comment_url = '/api/blogs/{{blog.id}}/comments'
 $(function(){
-    var vm = new Vue(
-        el = '#form-comment',
-        data = '',
-        methods = {
+    var vm = new Vue({
+        el: '#form-comment',
+        data: '',
+        methods: {
             submit: function(event){
                 event.preventDefault();
                 var $form = $('#form-comment');
@@ -27,7 +26,7 @@ $(function(){
                 });
             }
         }
-    );
+    });
     $('#form-comment').show();
 })
 </script>
@@ -53,7 +52,7 @@ $(function(){
                 <h4 class="uk-comment-title">{{ __user__.name }}</h4>
             </header>
             <div class="uk-comment-body">
-                <form id="form-comment" v-on="submit: submit" class="uk-form">
+                <form id="form-comment" v-on:submit="submit" class="uk-form">
                     <div class="uk-alert uk-alert-danger uk-hidden"></div>
                     <div class="uk-form-row">
                         <textarea rows="6" placeholder="说点什么吧" style="width:100%;resize:none;"></textarea>

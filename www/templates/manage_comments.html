@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 
 {% extends '__base__.html' %}
 
@@ -7,13 +7,13 @@
 {% block beforehead %}
 <script>
 function initVM(data){
-    var vm = new Vue(
-        el = '#vm',
-        data = {
-            page = data.page,
-            comments = data.comments
+    var vm = new Vue({
+        el: '#vm',
+        data: {
+            page: data.page,
+            comments: data.comments
         },
-        methods = {
+        methods: {
             delete_comment: function(comment){
                 var content = comment.content.length > 20 ? comment.content.substring(0, 20) + '...' : comment.content;
                 if(confirm('确定删除评论“' + content + '"?')){
@@ -26,7 +26,7 @@ function initVM(data){
                 }
             }
         }
-    );
+    });
     $('#vm').show();
 }
 
@@ -86,7 +86,7 @@ $(function(){
                         <span v-text="comment.created_at.toDateTime()"></span>
                     </td>
                     <td>
-                        <a href="#0" v-on="click: delete_comment(comment)"><i class="uk-icon-trash-o"></i></a>
+                        <a href="#0" v-on:click="delete_comment(comment)"><i class="uk-icon-trash-o"></i></a>
                     </td>
                 </tr>
             </tbody>
@@ -94,3 +94,4 @@ $(function(){
         <div v-component="pagination" v-with="page"></div>
     </div>
 {% endblock %}
+

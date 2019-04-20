@@ -28,6 +28,9 @@ class APIError(Exception):
         self.data = data
         self.message = message
 
+    def __str__(self):
+        return 'Error:%s\nData:%s\nMessage:%s' % (self.error, self.data, self.message)
+
 
 class APIValueError(APIError):
     def __init__(self, field, message=''):

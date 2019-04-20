@@ -43,6 +43,7 @@ async def execute(sql, args):
     with (await __pool) as conn:
         try:
             cur = await conn.cursor()
+            # args中有None对象，执行sql时类型不识别报错，如何处理？
             await cur.execute(sql.replace('?', '%s'), args or ())
             affected = cur.rowcount
             await cur.close()
@@ -195,7 +196,8 @@ class Model(dict, metaclass=ModelMetaclass):
 
     @classmethod
     async def findNumber(cls, selectfield, where=None, args=None):
-        sql = ['select %s _num_ from table %s' % (selectfield, cls.__table__)]
+        # sql语句执行出错，没有按预期返回，导致页面返回None，如何处理这种异常情况？
+        sql = ['select %s _num_ from %s' % (selectfield, cls.__table__)]
         if where:
             sql.append('where')
             sql.append(where)

@@ -8,14 +8,14 @@
 <script>
 
 function validateEmail(email){
-    var re = /^[a-z0-9\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]){1,4}$/;
+    var re = /^[a-z0-9\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9-_]+){1,4}$/;
     return re.test(email.toLowerCase());
 }
 $(function () {
     var v_form = new Vue({
         el: '#form',
         data: {
-            name: 'test',
+            name: '',
             email: '',
             password1: '',
             password2: ''
@@ -40,7 +40,7 @@ $(function () {
                 $form.postJSON('/api/users', {
                     name: this.name.trim(),
                     email: email,
-                    passwd: CryptoJS.SHA1(email + ':' + this.password1).toString()
+                    passwd: sha1(email + ':' + this.password1).toString()
                 }, function (err, r) {
                     if (err) {
                         return $form.showFormError(err);

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 {% extends '__base__.html' %}
 
 {% block title %}编辑日志{% endblock %}
@@ -8,10 +8,10 @@ var
     ID = '{{id}}',
     action = '{{action}}';
 function initVM(blog){
-    var vm = new Vue(
-        el = '#vm',
-        data = blog,
-        methods = {
+    var vm = new Vue({
+        el: '#vm',
+        data: blog,
+        methods: {
             submit: function(event){
                 event.preventDefault();
                 var $form = $('#vm').find('form');
@@ -23,7 +23,7 @@ function initVM(blog){
                 });
             }
         }
-    );
+    });
     $('#vm').show();
 }
 
@@ -63,7 +63,7 @@ $(function(){
         <span><i class="uk-icon-spinner uk-icon-medium uk-icon-spin"></i> 正在加载...</span>
     </div>
     <div id="vm" class="uk-width-2-3">
-        <form v-on="submit: submit" class="uk-form uk-form-stacked">
+        <form v-on:submit="submit" class="uk-form uk-form-stacked">
             <div class="uk-alert uk-alert-danger uk-hidden"></div>
             <div class="uk-form-row">
                 <label class="uk-form-label">标题:</label>

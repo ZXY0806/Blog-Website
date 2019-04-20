@@ -201,13 +201,14 @@ async def api_users(*, page='1'):
     return dict(page=p, users=users)
 
 
-_RE_EMAIL = re.compile(r'^[a-zA-Z0-9.-_]+@[0-9a-z-_]+(.[a-z0-9-_]){1-4}$')
-_RE_SHA = re.compile(r'^[a-z0-9]{40}$')
+_RE_EMAIL = re.compile('^[a-zA-Z0-9.-_]+@[0-9a-z-_]+(.[a-z0-9-_]+){1,4}$')
+_RE_SHA = re.compile('^[a-z0-9]{40}$')
 
 
 @post('/api/users')
 async def api_register_user(*, email, name, passwd):
     if not name or not name.strip():
+        # 异常抛出后被拦截了？为啥控制台不显示？
         raise APIValueError('name')
     if not email or not _RE_EMAIL.match(email):
         raise APIValueError('email')
