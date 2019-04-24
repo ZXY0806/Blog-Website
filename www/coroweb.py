@@ -1,6 +1,7 @@
 import asyncio, os, inspect, logging, functools
 from aiohttp import web
 from urllib import parse
+from apis import APIError
 
 
 def get(path):
@@ -127,9 +128,8 @@ class RequestHandler(object):
         try:
             r = await self._func(**kw)
             return r
-        except:
-            # APIError
-            pass
+        except APIError as e:
+            return dict(error=e.error, data=e.data, message=e.message)
 
 
 def add_static(app):

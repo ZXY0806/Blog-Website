@@ -62,7 +62,7 @@ async def cookie2user(cookie_str):
         if len(L) != 3:
             return None
         uid, expires, sha1 = L
-        if expires < time.time():
+        if int(expires) < time.time():
             return None
         user = await User.find(uid)
         if user is None:
