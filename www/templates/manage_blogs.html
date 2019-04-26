@@ -32,7 +32,7 @@
 }
 
 $(function(){
-    getJSON('/api/blogs/', {
+    getJSON('/api/blogs', {
         page: {{ page_index }}
     }, function(err, results){
         if(err){
@@ -59,7 +59,7 @@ $(function(){
             </tr>
         </thead>
         <tbody>
-            <tr v-repeat="blog: blogs" >
+            <tr v-for="blog in blogs" >
                 <td>
                     <a target="_blank" v-attr="href: '/blog/'+blog.id" v-text="blog.name"></a>
                 </td>
