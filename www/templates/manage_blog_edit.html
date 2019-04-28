@@ -15,11 +15,11 @@ function initVM(blog){
             submit: function(event){
                 event.preventDefault();
                 var $form = $('#vm').find('form');
-                $form.postJSON(action, tis.$data, function(err, r){
+                $form.postJSON(action, this.$data, function(err, r){
                     if(err){
                         return $form.showFormError(err);
                     }
-                    return location.assign('/api/blogs/' + r.id);
+                    return location.assign('/blog/' + r.id);
                 });
             }
         }

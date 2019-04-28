@@ -30,8 +30,8 @@ COOKIE_NAME = 'blog-website'
 _COOKIE_KEY = configs.session.secret
 
 
-def check_admin(request):
-    if request.__user__ is None or not request.__user__.admin:
+def check_admin(user):
+    if user is None or not user.admin:
         raise APIPermissionError()
 
 
