@@ -6,6 +6,7 @@
 {% block beforehead %}
 <script>
 var comment_url = '/api/blogs/{{blog.id}}/comments'
+var user = {{__user__ or ''}}
 $(function(){
     var vm = new Vue({
         el: '#form-comment',
@@ -13,6 +14,9 @@ $(function(){
         methods: {
             submit: function(event){
                 event.preventDefault();
+                if (user==='') {
+                    return $form.showFormError('请先登录！');
+                }
                 var $form = $('#form-comment');
                 var content = $form.find('textarea').val().trim();
                 if (content==='') {
@@ -43,13 +47,15 @@ $(function(){
 
         <hr class="uk-article-divider">
 
-    {% if __user__ %}
+
         <h3>发表评论</h3>
 
         <article class="uk-comment">
             <header class="uk-comment-header">
+                {% if __user__ %}
                 <img class="uk-comment-avatar uk-border-circle" width="50" height="50" src="{{ __user__.image }}">
                 <h4 class="uk-comment-title">{{ __user__.name }}</h4>
+                {% endif %}
             </header>
             <div class="uk-comment-body">
                 <form id="form-comment" v-on:submit="submit" class="uk-form">
@@ -65,7 +71,7 @@ $(function(){
         </article>
 
         <hr class="uk-article-divider">
-    {% endif %}
+
 
         <h3>最新评论</h3>
 
