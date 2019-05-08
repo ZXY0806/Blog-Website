@@ -219,7 +219,8 @@ async def api_register_user(*, email, name, passwd):
         raise APIError('register:failed', 'email', 'email has already in use')
     uid = next_id()
     sha1_passwd = '%s:%s' % (uid, passwd)
-    user = User(id=uid, email=email, name=name, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest())
+    user = User(id=uid, email=email, name=name, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
+                image='/static/img/default.png')
     await user.save()
     r = web.Response()
     r.content_type = 'application/json'
@@ -271,12 +272,17 @@ async def get_blog(blog_id):
     comments = await Comment.findAll('blog_id=?', [blog_id], orderBy='created_at desc')
     for c in comments:
         c.html_content = markdown.markdown(c.content)
-    blog.html_content = markdown.markdown(blog.content)
-    return {
-        '__template__': 'blog.html',
-        'comments': comments,
-        'blog': blog
-    }
+    if blog:
+        blog.html_content = markdown.markdown(blog.content)
+        return {
+            '__template__': 'blog.html',
+            'comments': comments,
+            'blog': blog
+        }
+    else:
+        return{
+            '__template__': '404.html'
+        }
 
 
 @get('/api/blogs')
