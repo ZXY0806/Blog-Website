@@ -7,13 +7,13 @@
 {% block beforehead %}
 
 <script>
-function initVM(data) {
+function initVM(result) {
     $('#vm').show();
     var vm = new Vue({
         el: '#vm',
         data: {
-            users: data.users,
-            page: data.page
+            users: result.users,
+            page: result.page
         }
     });
 }
@@ -61,13 +61,13 @@ $(function() {
                 </tr>
             </thead>
             <tbody>
-                <tr v-repeat="user: users" >
+                <tr v-for="user in users" >
                     <td>
                         <span v-text="user.name"></span>
                         <span v-if="user.admin" style="color:#d05"><i class="uk-icon-key"></i> 管理员</span>
                     </td>
                     <td>
-                        <a v-attr="href: 'mailto:'+user.email" v-text="user.email"></a>
+                        <a v-bind:href="'mailto:'+user.email" v-text="user.email"></a>
                     </td>
                     <td>
                         <span v-text="user.created_at.toDateTime()"></span>
@@ -79,3 +79,5 @@ $(function() {
     </div>
 
 {% endblock %}
+
+

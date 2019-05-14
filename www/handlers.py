@@ -195,7 +195,7 @@ async def api_users(*, page='1'):
     p = Page(num, get_page_index(page))
     if num == 0:
         return dict(page=p, users=())
-    users = await User.findAll(orderBy='created_at desc', limit=(p.offset,p.limit))
+    users = await User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     for u in users:
         u.passwd = '******'
     return dict(page=p, users=users)
@@ -292,7 +292,7 @@ async def api_blogs(*, page='1'):
     p = Page(num, page_index)
     if num == 0:
         return dict(page=p, blogs=())
-    blogs = Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    blogs = await Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return dict(page=p, blogs=blogs)
 
 

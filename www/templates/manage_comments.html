@@ -75,7 +75,7 @@ $(function(){
                 </tr>
             </thead>
             <tbody>
-                <tr v-repeat="comment: comments" >
+                <tr v-for="comment in comments" >
                     <td>
                         <span v-text="comment.user_name"></span>
                     </td>
