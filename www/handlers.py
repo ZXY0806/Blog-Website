@@ -148,26 +148,38 @@ async def authenticate(*, email, passwd):
 
 
 @get('/manage/users')
-def manage_users(*, page='1'):
+async def manage_users(*, page='1'):
+    num = await User.findNumber('count(id)')
+    page_index = get_page_index(page)
+    p = Page(num, page_index)
     return {
         '__template__': 'manage_users.html',
-        'page_index': get_page_index(page)
+        'page_index': page_index,
+        'page': p
     }
 
 
 @get('/manage/comments')
-def manage_comments(*, page='1'):
+async def manage_comments(*, page='1'):
+    num = await Comment.findNumber('count(id)')
+    page_index = get_page_index(page)
+    p = Page(num, page_index)
     return {
         '__template__': 'manage_comments.html',
-        'page_index': get_page_index(page)
+        'page_index': page_index,
+        'page': p
     }
 
 
 @get('/manage/blogs')
-def manage_blogs(*, page='1'):
+async def manage_blogs(*, page='1'):
+    num = await Blog.findNumber('count(id)')
+    page_index = get_page_index(page)
+    p = Page(num, page_index)
     return {
         '__template__': 'manage_blogs.html',
-        'page_index': get_page_index(page)
+        'page_index': page_index,
+        'page': p
     }
 
 
