@@ -85,7 +85,7 @@ def text2html(text):
 
 
 @get('/')
-async def index(page='1'):
+async def index(*, page='1'):
     page_index = get_page_index(page)
     num = await Blog.findNumber('count(id)')
     p = Page(num, page_index)
@@ -188,17 +188,25 @@ def manage_create_blog():
     return {
         '__template__': 'manage_blog_edit.html',
         'id': '',
-        'action': '/api/blogs'
+        'action': '/api/blogs',
+        'blog': ''
     }
 
 
 @get('/manage/blogs/edit')
-def manage_blog_edit(*, blog_id):
-    return {
-        '__template__': 'manage_blog_edit.html',
-        'id': id,
-        'action': '/api/blogs/%s' % blog_id
-    }
+async def manage_blog_edit(*, blog_id):
+    blog = await Blog.find(blog_id)
+    if blog:
+        return {
+            '__template__': 'manage_blog_edit.html',
+            'id': id,
+            'action': '/api/blogs/%s' % blog_id,
+            'blog': blog
+        }
+    else:
+        return {
+            '__template__': '404.html'
+        }
 
 
 @get('/api/users')
@@ -255,7 +263,7 @@ async def api_comments(*, page='1'):
 
 @post('/api/comments/{comment_id}/delete')
 async def api_delete_comment(comment_id, request):
-    check_admin(request)
+    check_admin(request.__user__)
     comment = await Comment.find(comment_id)
     if comment is None:
         return APIResourceNotFoundError('comment')
@@ -278,7 +286,7 @@ async def api_create_comment(blog_id, request, *, content):
     return comment
 
 
-@get('/blog/{blog_id}')
+@get('/api/blog/{blog_id}')
 async def get_blog(blog_id):
     blog = await Blog.find(blog_id)
     comments = await Comment.findAll('blog_id=?', [blog_id], orderBy='created_at desc')

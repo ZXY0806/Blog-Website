@@ -229,7 +229,7 @@ class Model(dict, metaclass=ModelMetaclass):
             logging.warning('affected row is not 1')
 
     async def remove(self):
-        args = [self.getValueOrDefault(self.__primry_key__)]
+        args = [self.getValueOrDefault(self.__primary_key__)]
         affected = await execute(self.__delete__, args)
         if affected != 1:
             logging.warning('affected row is not 1')

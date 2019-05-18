@@ -14,7 +14,7 @@
         },
         methods: {
             edit_blog: function(blog){
-                location.assign('/manage/blogs?id=' + blog.id);
+                location.assign('/manage/blogs/edit?blog_id=' + blog.id);
             },
             delete_blog: function(blog){
                 if(confirm('确定删除日志“' + blog.name + '"?')){
@@ -47,12 +47,12 @@ $(function(){
 
 {% block content %}
 <div id="vm" class="uk-width-1-1">
-    <a href="/manage/blogs/create" class="uk-button uk-button-primary"><i class="uk-icon-plus"></i> 新日志</a>
+    <a target="_blank" href="/manage/blogs/create" class="uk-button uk-button-primary"><i class="uk-icon-plus"></i> 新日志</a>
     <p></p>
     <div class="uk-width-1-1 uk-margin-bottom">
         <div class="uk-panel uk-panel-box">
             <ul class="uk-breadcrumb">
-                <li><a href="/manage/comments">用户</a></li>
+                <li><a href="/manage/users">用户</a></li>
                 <li class="uk-active"><span>日志</span>></li>
                 <li><a href="/manage/comments">评论</a></li>
             </ul>
@@ -70,10 +70,10 @@ $(function(){
         <tbody>
             <tr v-for="blog in blogs" >
                 <td>
-                    <a target="_blank" v-bind:href="'/blog/'+blog.id" v-text="blog.name"></a>
+                    <a v-bind:href="'/api/blog/'+blog.id" v-text="blog.name"></a>
                 </td>
                 <td>
-                    <a target="_blank" v-bind:href="'/user/'+blog.user_id" v-text="blog.user_name"></a>
+                    <a v-bind:href="'/user/'+blog.user_id" v-text="blog.user_name"></a>
                 </td>
                 <td>
                     <span v-text="blog.created_at.toDateTime()"></span>
